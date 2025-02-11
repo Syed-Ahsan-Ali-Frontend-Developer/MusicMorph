@@ -10,6 +10,21 @@ export interface MusicGenerationResult {
   duration: string;
 }
 
+async function verifyApiKey(): Promise<boolean> {
+  try {
+    // Make a simple API call to verify the key
+    await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: "test" }],
+      max_tokens: 1
+    });
+    return true;
+  } catch (error) {
+    console.error("API key verification failed:", error);
+    return false;
+  }
+}
+
 async function retryWithBackoff<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -34,6 +49,12 @@ export async function generateSimilarMusic(
   let audioReadStream: fs.ReadStream | null = null;
 
   try {
+    // First verify the API key
+    const isValidKey = await verifyApiKey();
+    if (!isValidKey) {
+      throw new Error("Invalid or expired OpenAI API key");
+    }
+
     audioReadStream = fs.createReadStream(sourceAudioPath);
 
     // Attempt transcription with retry logic
@@ -75,6 +96,7 @@ export async function generateSimilarMusic(
     });
 
     const musicCharacteristics = JSON.parse(analysisResponse.choices[0].message.content || "{}");
+    console.log("Music characteristics:", musicCharacteristics);
 
     // For now, we'll create a modified copy of the original file
     // In a real implementation, this would be replaced with actual AI-generated music
@@ -95,6 +117,9 @@ export async function generateSimilarMusic(
     }
 
     console.error("Error generating music:", error);
+    if (error.message.includes("API key")) {
+      throw new Error("OpenAI API key is invalid or has expired. Please check your API key configuration.");
+    }
     throw new Error(`Failed to generate music: ${error.message}`);
   }
 }
@@ -103,6 +128,11 @@ export async function analyzeAudioCharacteristics(audioPath: string) {
   let audioReadStream: fs.ReadStream | null = null;
 
   try {
+    const isValidKey = await verifyApiKey();
+    if (!isValidKey) {
+      throw new Error("Invalid or expired OpenAI API key");
+    }
+
     audioReadStream = fs.createReadStream(audioPath);
 
     const transcription = await retryWithBackoff(async () => {
