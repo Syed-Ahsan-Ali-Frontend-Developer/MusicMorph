@@ -13,6 +13,33 @@ export default function Home() {
     queryKey: ["/api/tracks"],
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (trackId: number) => {
+      const response = await fetch(`/api/tracks/${trackId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Deletion failed");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tracks"] });
+      toast({
+        title: "Success",
+        description: "Track deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to delete track",
+      });
+    },
+  });
+
   const generateMutation = useMutation({
     mutationFn: async (trackId: number) => {
       const response = await fetch("/api/tracks/generate", {
@@ -75,7 +102,9 @@ export default function Home() {
                 });
                 generateMutation.mutate(trackId);
               }}
+              onDelete={(trackId) => deleteMutation.mutate(trackId)}
               isGenerating={generateMutation.isPending}
+              isDeleting={deleteMutation.isPending}
             />
           ) : (
             <div className="text-center p-8 border-2 border-dashed rounded-lg">

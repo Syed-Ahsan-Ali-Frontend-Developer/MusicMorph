@@ -1,16 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { WaveVisualizer } from "./wave-visualizer";
-import { Play, Pause, SkipBack, SkipForward, Download } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Track } from "@shared/schema";
 
 interface AudioPlayerProps {
   track: Track;
   onDownload?: () => void;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
-export function AudioPlayer({ track, onDownload }: AudioPlayerProps) {
+export function AudioPlayer({ track, onDownload, onDelete, isDeleting = false }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
@@ -40,6 +42,17 @@ export function AudioPlayer({ track, onDownload }: AudioPlayerProps) {
           >
             <SkipBack className="h-4 w-4" />
           </Button>
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              disabled={isDeleting}
+              className="text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
 
           <Button
             variant="ghost"

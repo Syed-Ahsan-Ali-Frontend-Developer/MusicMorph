@@ -6,10 +6,12 @@ import { Loader2 } from "lucide-react";
 interface TrackListProps {
   tracks: Track[];
   onGenerateNew: (trackId: number) => void;
+  onDelete: (trackId: number) => void;
   isGenerating?: boolean;
+  isDeleting?: boolean;
 }
 
-export function TrackList({ tracks, onGenerateNew, isGenerating = false }: TrackListProps) {
+export function TrackList({ tracks, onGenerateNew, onDelete, isGenerating = false, isDeleting = false }: TrackListProps) {
   // Sort tracks: uploaded tracks first, then generated tracks
   const sortedTracks = [...tracks].sort((a, b) => {
     // First sort by type (uploaded vs generated)
@@ -31,6 +33,8 @@ export function TrackList({ tracks, onGenerateNew, isGenerating = false }: Track
                 ? () => window.open(`/uploads/${track.filePath}`, "_blank")
                 : undefined
             }
+            onDelete={() => onDelete(track.id)}
+            isDeleting={isDeleting}
           />
           {!track.isGenerated && (
             <Button
