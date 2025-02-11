@@ -58,9 +58,9 @@ export async function generateSimilarMusic(
       audioReadStream = null;
     }
 
-    // Analyze the audio characteristics
+    // Analyze the audio characteristics using gpt-3.5-turbo instead of gpt-4
     const analysisResponse = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
@@ -119,7 +119,7 @@ export async function analyzeAudioCharacteristics(audioPath: string) {
     audioReadStream = null;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
