@@ -7,10 +7,16 @@ import { insertTrackSchema } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { openai } from "./openai";
 
+// Create uploads directory if it doesn't exist
+import fs from "fs";
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: "uploads/",
-    filename: (_req, file, cb) => {
+    filename: (_req: Express.Request, file: Express.Multer.File, cb) => {
       const uniqueSuffix = nanoid();
       cb(null, uniqueSuffix + path.extname(file.originalname));
     },
@@ -18,26 +24,30 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedTypes = ["audio/mpeg", "audio/wav", "audio/ogg"];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type"));
+      cb(new Error("Invalid file type. Only MP3, WAV, and OGG files are allowed."));
     }
   },
 });
 
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
+
 export function registerRoutes(app: Express): Server {
-  app.post("/api/tracks/upload", upload.single("file"), async (req, res) => {
+  app.post("/api/tracks/upload", upload.single("file"), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
-        throw new Error("No file uploaded");
+        return res.status(400).json({ error: "No file uploaded" });
       }
 
       const trackData = {
         name: req.file.originalname,
-        filePath: req.file.path,
+        filePath: req.file.filename,
         duration: "0:00", // TODO: Extract actual duration
         isGenerated: false,
         waveformData: JSON.stringify([]), // TODO: Generate waveform data
@@ -47,16 +57,22 @@ export function registerRoutes(app: Express): Server {
       const track = await storage.createTrack(parsed);
       res.json(track);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      const message = error instanceof Error ? error.message : "Failed to upload file";
+      res.status(400).json({ error: message });
     }
   });
 
   app.get("/api/tracks", async (_req, res) => {
-    const tracks = await storage.getAllTracks();
-    res.json(tracks);
+    try {
+      const tracks = await storage.getAllTracks();
+      res.json(tracks);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch tracks";
+      res.status(500).json({ error: message });
+    }
   });
 
-  app.post("/api/tracks/generate", async (req: Request<{ id: number }>, res) => {
+  app.post("/api/tracks/generate", async (req: Request<never, never, { id: number }>, res) => {
     try {
       const sourceTrack = await storage.getTrack(req.body.id);
       if (!sourceTrack) {
@@ -76,7 +92,8 @@ export function registerRoutes(app: Express): Server {
       const track = await storage.createTrack(parsed);
       res.json(track);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : "Failed to generate track";
+      res.status(500).json({ error: message });
     }
   });
 

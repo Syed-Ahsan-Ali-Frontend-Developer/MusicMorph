@@ -4,32 +4,44 @@ import { Input } from "@/components/ui/input";
 import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 export function UploadForm() {
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleUpload = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
+    setIsUploading(true);
 
     try {
-      const response = await apiRequest("POST", "/api/tracks/upload", formData);
+      const response = await fetch("/api/tracks/upload", {
+        method: "POST",
+        body: formData,
+      });
+
       if (!response.ok) {
-        throw new Error("Upload failed");
+        const error = await response.json();
+        throw new Error(error.message || "Upload failed");
       }
+
+      await queryClient.invalidateQueries({ queryKey: ["/api/tracks"] });
+
       toast({
         title: "Success",
         description: "Track uploaded successfully",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Upload failed",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -77,8 +89,9 @@ export function UploadForm() {
       <Button
         variant="outline"
         onClick={() => fileInputRef.current?.click()}
+        disabled={isUploading}
       >
-        Choose File
+        {isUploading ? "Uploading..." : "Choose File"}
       </Button>
     </Card>
   );
