@@ -55,7 +55,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/tracks/upload", upload.single("file"), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+        return res.status(400).json({ message: "No file uploaded" });
       }
 
       const trackData = {
@@ -71,7 +71,7 @@ export function registerRoutes(app: Express): Server {
       res.json(track);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to upload file";
-      res.status(400).json({ error: message });
+      res.status(400).json({ message });
     }
   });
 
@@ -81,36 +81,53 @@ export function registerRoutes(app: Express): Server {
       res.json(tracks);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to fetch tracks";
-      res.status(500).json({ error: message });
+      res.status(500).json({ message });
     }
   });
 
   app.post("/api/tracks/generate", async (req: Request<never, never, { id: number }>, res) => {
     try {
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(400).json({ 
+          message: "OpenAI API key not configured. Please configure the API key to use music generation." 
+        });
+      }
+
       const sourceTrack = await storage.getTrack(req.body.id);
       if (!sourceTrack) {
-        return res.status(404).json({ error: "Source track not found" });
+        return res.status(404).json({ message: "Source track not found" });
       }
 
       const sourceFilePath = path.join("uploads", sourceTrack.filePath);
+      if (!fs.existsSync(sourceFilePath)) {
+        return res.status(404).json({ message: "Source audio file not found" });
+      }
 
       // Generate similar music using OpenAI
-      const generatedMusic = await generateSimilarMusic(sourceFilePath);
+      try {
+        const generatedMusic = await generateSimilarMusic(sourceFilePath);
 
-      const generatedTrackData = {
-        name: `AI Generated - ${sourceTrack.name}`,
-        filePath: path.basename(generatedMusic.filePath),
-        duration: generatedMusic.duration,
-        isGenerated: true,
-        waveformData: null,
-      };
+        const generatedTrackData = {
+          name: `AI Generated - ${sourceTrack.name}`,
+          filePath: path.basename(generatedMusic.filePath),
+          duration: generatedMusic.duration,
+          isGenerated: true,
+          waveformData: null,
+        };
 
-      const parsed = insertTrackSchema.parse(generatedTrackData);
-      const track = await storage.createTrack(parsed);
-      res.json(track);
+        const parsed = insertTrackSchema.parse(generatedTrackData);
+        const track = await storage.createTrack(parsed);
+        res.json(track);
+      } catch (error) {
+        console.error('Music generation error:', error);
+        return res.status(500).json({ 
+          message: "Failed to generate music. Please try again later or contact support if the issue persists." 
+        });
+      }
     } catch (error) {
+      console.error('Track generation error:', error);
       const message = error instanceof Error ? error.message : "Failed to generate track";
-      res.status(500).json({ error: message });
+      res.status(500).json({ message });
     }
   });
 
