@@ -40,17 +40,20 @@ export function WaveVisualizer({
       progressColor,
       barWidth,
       barGap,
-      responsive,
+      barRadius: 2,
       cursorWidth: 0,
-      backend: "WebAudio",
       normalize: true,
-      partialRender: true,
-      pixelRatio: 1,
+      minPxPerSec: 1,
+      backend: "MediaElement",
+      mediaControls: true,
     });
 
     wavesurfer.current = ws;
 
-    ws.load(url);
+    // Ensure the URL is absolute
+    const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+
+    ws.load(fullUrl);
 
     ws.on("ready", () => {
       setDuration(ws.getDuration());
@@ -61,10 +64,14 @@ export function WaveVisualizer({
     ws.on("pause", () => onPlayPause?.(false));
     ws.on("finish", () => onPlayPause?.(false));
 
+    ws.on("error", (err) => {
+      console.error("WaveSurfer error:", err);
+    });
+
     return () => {
       ws.destroy();
     };
-  }, [url]);
+  }, [url, height, waveColor, progressColor, barWidth, barGap]);
 
   // Handle play/pause from props
   useEffect(() => {

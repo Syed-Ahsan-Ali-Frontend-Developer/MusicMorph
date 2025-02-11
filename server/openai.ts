@@ -32,20 +32,20 @@ export async function generateSimilarMusic(
         },
         {
           role: "user",
-          content: transcription.text,
+          content: transcription.text || "",
         },
       ],
       response_format: { type: "json_object" },
     });
 
-    const musicCharacteristics = JSON.parse(analysisResponse.choices[0].message.content);
+    const musicCharacteristics = JSON.parse(analysisResponse.choices[0].message.content || "{}");
 
     // Generate music based on the analysis
     // Note: This is a placeholder for actual music generation
     // In reality, you would use a specialized music generation model
     // For now, we'll create a simple audio file as a demonstration
     const generatedFilePath = path.join("uploads", `generated_${nanoid()}.mp3`);
-    
+
     // Copy the source file as a placeholder
     // In a real implementation, this would be replaced with actual generated music
     fs.copyFileSync(sourceAudioPath, generatedFilePath);
@@ -54,9 +54,9 @@ export async function generateSimilarMusic(
       filePath: generatedFilePath,
       duration: "3:00", // Placeholder duration
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating music:", error);
-    throw new Error("Failed to generate music: " + error.message);
+    throw new Error(`Failed to generate music: ${error.message}`);
   }
 }
 
@@ -77,16 +77,16 @@ export async function analyzeAudioCharacteristics(audioPath: string) {
         },
         {
           role: "user",
-          content: transcription.text,
+          content: transcription.text || "",
         },
       ],
       response_format: { type: "json_object" },
     });
 
-    return JSON.parse(response.choices[0].message.content);
-  } catch (error) {
+    return JSON.parse(response.choices[0].message.content || "{}");
+  } catch (error: any) {
     console.error("Error analyzing audio:", error);
-    throw new Error("Failed to analyze audio: " + error.message);
+    throw new Error(`Failed to analyze audio: ${error.message}`);
   }
 }
 

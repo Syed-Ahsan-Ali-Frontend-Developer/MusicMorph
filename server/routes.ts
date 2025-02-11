@@ -5,11 +5,10 @@ import multer from "multer";
 import path from "path";
 import { insertTrackSchema } from "@shared/schema";
 import { nanoid } from "nanoid";
-import { openai } from "./openai";
-import express from "express"; //Import express
-
-// Create uploads directory if it doesn't exist
+import { generateSimilarMusic } from "./openai";
+import express from "express";
 import fs from "fs";
+
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
 }
@@ -43,7 +42,6 @@ export function registerRoutes(app: Express): Server {
   // Serve static files from uploads directory
   app.use("/uploads", express.static("uploads", {
     setHeaders: (res, filePath) => {
-      // Set proper MIME types for audio files
       if (filePath.endsWith('.mp3')) {
         res.setHeader('Content-Type', 'audio/mpeg');
       } else if (filePath.endsWith('.wav')) {
@@ -65,7 +63,7 @@ export function registerRoutes(app: Express): Server {
         filePath: req.file.filename,
         duration: "0:00", // TODO: Extract actual duration
         isGenerated: false,
-        waveformData: null, // Removed unnecessary JSON.stringify([])
+        waveformData: null,
       };
 
       const parsed = insertTrackSchema.parse(trackData);
@@ -94,13 +92,17 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Source track not found" });
       }
 
-      // TODO: Implement actual music generation with OpenAI
+      const sourceFilePath = path.join("uploads", sourceTrack.filePath);
+
+      // Generate similar music using OpenAI
+      const generatedMusic = await generateSimilarMusic(sourceFilePath);
+
       const generatedTrackData = {
         name: `AI Generated - ${sourceTrack.name}`,
-        filePath: sourceTrack.filePath, // Temporary, should be replaced with generated file
-        duration: sourceTrack.duration,
+        filePath: path.basename(generatedMusic.filePath),
+        duration: generatedMusic.duration,
         isGenerated: true,
-        waveformData: sourceTrack.waveformData,
+        waveformData: null,
       };
 
       const parsed = insertTrackSchema.parse(generatedTrackData);
