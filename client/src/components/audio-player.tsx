@@ -1,16 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { WaveVisualizer } from "./wave-visualizer";
-import { Play, Pause, SkipBack, SkipForward, Download } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Track } from "@shared/schema";
 
 interface AudioPlayerProps {
   track: Track;
   onDownload?: () => void;
+  onDelete?: () => void; // Added onDelete prop
+  isDeleting?: boolean; // Added isDeleting prop
 }
 
-export function AudioPlayer({ track, onDownload }: AudioPlayerProps) {
+export function AudioPlayer({ track, onDownload, onDelete, isDeleting = false }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
@@ -65,11 +67,18 @@ export function AudioPlayer({ track, onDownload }: AudioPlayerProps) {
         </div>
 
         {onDownload && (
-          <Button variant="outline" onClick={onDownload}>
-            <Download className="h-4 w-4 mr-2" />
-            Download
+          <Button variant="ghost" size="icon" onClick={onDownload}>
+            <Download className="h-4 w-4" />
           </Button>
         )}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onDelete}
+          disabled={isDeleting}
+        >
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
       </div>
     </Card>
   );
