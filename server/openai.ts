@@ -57,18 +57,13 @@ async function processAudioLocally(sourceFilePath: string): Promise<MusicGenerat
     const outputPath = path.join("uploads", outputFileName);
 
     return new Promise<MusicGenerationResult>((resolve, reject) => {
-      const variations = [
-        ['atempo=0.8'],  // Slower version
-        ['atempo=1.2'],  // Faster version
-        ['atempo=1.0']   // Original tempo with different EQ
-      ];
+      const tempos = [0.8, 1.2, 1.0];  // Different speeds for variations
+      const tempo = tempos[index];
 
       ffmpeg(sourceFilePath)
-        .audioFilters([
-          variations[index],
-          'aloop=loop=4' // Loop the audio 4 times to make it 2-3 minutes long
-        ])
+        .audioFilters(`atempo=${tempo}`)
         .audioCodec('libmp3lame')
+        .duration(180) // Set duration to 3 minutes
         .save(outputPath)
         .on('end', () => {
           resolve({
