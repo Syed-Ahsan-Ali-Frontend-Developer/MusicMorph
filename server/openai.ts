@@ -48,14 +48,28 @@ async function processAudioLocally(sourceFilePath: string): Promise<MusicGenerat
   const outputFileName = `processed_${nanoid()}.mp3`;
   const outputPath = path.join("uploads", outputFileName);
 
-  // For now, we'll just copy the file
-  // In a real implementation, we would use a library like ffmpeg to apply effects
-  await fs.promises.copyFile(sourceFilePath, outputPath);
-
-  return {
-    filePath: outputFileName,
-    duration: "3:00", // Placeholder duration
-  };
+  const ffmpeg = (await import('fluent-ffmpeg')).default;
+  
+  return new Promise((resolve, reject) => {
+    ffmpeg(sourceFilePath)
+      // Apply random effects
+      .audioFilters([
+        // Randomly adjust tempo between 0.8x and 1.2x
+        `atempo=${0.8 + Math.random() * 0.4}`,
+        // Random pitch shift between -2 and +2 semitones
+        `asetrate=44100*${0.89 + Math.random() * 0.22}`,
+        // Add slight reverb
+        'aecho=0.8:0.88:60:0.4'
+      ])
+      .save(outputPath)
+      .on('end', () => {
+        resolve({
+          filePath: outputFileName,
+          duration: "3:00", // Placeholder duration
+        });
+      })
+      .on('error', reject);
+  });
 }
 
 export async function generateSimilarMusic(
