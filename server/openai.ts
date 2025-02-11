@@ -64,7 +64,10 @@ async function processAudioLocally(sourceFilePath: string): Promise<MusicGenerat
       ];
 
       ffmpeg(sourceFilePath)
-        .audioFilters(variations[index])
+        .audioFilters([
+          variations[index],
+          'aloop=loop=4' // Loop the audio 4 times to make it 2-3 minutes long
+        ])
         .audioCodec('libmp3lame')
         .save(outputPath)
         .on('end', () => {
