@@ -1,4 +1,6 @@
 import { tracks, type Track, type InsertTrack } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   createTrack(track: InsertTrack): Promise<Track>;
@@ -7,37 +9,32 @@ export interface IStorage {
   deleteTrack(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private tracks: Map<number, Track>;
-  private currentId: number;
-
-  constructor() {
-    this.tracks = new Map();
-    this.currentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async createTrack(track: InsertTrack): Promise<Track> {
-    const id = this.currentId++;
-    const newTrack: Track = {
-      ...track,
-      id,
-      createdAt: new Date(),
-    };
-    this.tracks.set(id, newTrack);
+    const [newTrack] = await db
+      .insert(tracks)
+      .values(track)
+      .returning();
     return newTrack;
   }
 
   async getAllTracks(): Promise<Track[]> {
-    return Array.from(this.tracks.values());
+    return await db.select().from(tracks);
   }
 
   async getTrack(id: number): Promise<Track | undefined> {
-    return this.tracks.get(id);
+    const [track] = await db
+      .select()
+      .from(tracks)
+      .where(eq(tracks.id, id));
+    return track;
   }
 
   async deleteTrack(id: number): Promise<void> {
-    this.tracks.delete(id);
+    await db
+      .delete(tracks)
+      .where(eq(tracks.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
