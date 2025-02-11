@@ -6,6 +6,7 @@ import path from "path";
 import { insertTrackSchema } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { openai } from "./openai";
+import express from "express"; //Import express
 
 // Create uploads directory if it doesn't exist
 import fs from "fs";
@@ -39,6 +40,20 @@ interface MulterRequest extends Request {
 }
 
 export function registerRoutes(app: Express): Server {
+  // Serve static files from uploads directory
+  app.use("/uploads", express.static("uploads", {
+    setHeaders: (res, filePath) => {
+      // Set proper MIME types for audio files
+      if (filePath.endsWith('.mp3')) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+      } else if (filePath.endsWith('.wav')) {
+        res.setHeader('Content-Type', 'audio/wav');
+      } else if (filePath.endsWith('.ogg')) {
+        res.setHeader('Content-Type', 'audio/ogg');
+      }
+    }
+  }));
+
   app.post("/api/tracks/upload", upload.single("file"), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
@@ -50,7 +65,7 @@ export function registerRoutes(app: Express): Server {
         filePath: req.file.filename,
         duration: "0:00", // TODO: Extract actual duration
         isGenerated: false,
-        waveformData: JSON.stringify([]), // TODO: Generate waveform data
+        waveformData: null, // Removed unnecessary JSON.stringify([])
       };
 
       const parsed = insertTrackSchema.parse(trackData);

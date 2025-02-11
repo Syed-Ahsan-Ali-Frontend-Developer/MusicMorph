@@ -27,19 +27,33 @@ export function WaveVisualizer({
       height,
       waveColor,
       progressColor,
-      backend: "WebAudio",
+      backend: "MediaElement", 
       normalize: true,
+      pixelRatio: window.devicePixelRatio || 1,
+      barWidth: 2,
+      barGap: 1,
+      barRadius: 2,
+      minPxPerSec: 1,
+      mediaControls: true,
+      interact: true,
     });
 
-    wavesurfer.current.load(url);
+    const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+
+    wavesurfer.current.load(fullUrl);
+
     wavesurfer.current.on("ready", () => {
       onReady?.();
+    });
+
+    wavesurfer.current.on("error", (err) => {
+      console.error("WaveSurfer error:", err);
     });
 
     return () => {
       wavesurfer.current?.destroy();
     };
-  }, [url]);
+  }, [url, height, waveColor, progressColor]);
 
   return <div ref={containerRef} />;
 }
