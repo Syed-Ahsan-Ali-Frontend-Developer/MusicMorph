@@ -85,29 +85,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.delete("/api/tracks/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const track = await storage.getTrack(id);
-      
-      if (!track) {
-        return res.status(404).json({ message: "Track not found" });
-      }
-
-      // Delete the file from uploads directory
-      const filePath = path.join("uploads", track.filePath);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-
-      await storage.deleteTrack(id);
-      res.json({ message: "Track deleted successfully" });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to delete track";
-      res.status(500).json({ message });
-    }
-  });
-
   app.post("/api/tracks/generate", async (req: Request<never, never, { id: number }>, res) => {
     try {
       if (!process.env.OPENAI_API_KEY) {
