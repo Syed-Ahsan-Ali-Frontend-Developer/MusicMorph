@@ -48,37 +48,47 @@ async function retryWithBackoff<T>(
 }
 
 // Basic audio manipulation without OpenAI
-async function processAudioLocally(sourceFilePath: string): Promise<MusicGenerationResult> {
-  const outputFileName = `processed_${nanoid()}.mp3`;
-  const outputPath = path.join("uploads", outputFileName);
-
+async function processAudioLocally(sourceFilePath: string): Promise<MusicGenerationResult[]> {
+  const variations: MusicGenerationResult[] = [];
   const ffmpeg = (await import('fluent-ffmpeg')).default;
-  
-  return new Promise((resolve, reject) => {
-    ffmpeg(sourceFilePath)
-      // Apply random effects
-      .audioFilters([
-        // Randomly adjust tempo between 0.8x and 1.2x
-        `atempo=${0.8 + Math.random() * 0.4}`,
-        // Random pitch shift between -2 and +2 semitones
-        `asetrate=44100*${0.89 + Math.random() * 0.22}`,
-        // Add slight reverb
-        'aecho=0.8:0.88:60:0.4'
-      ])
-      .save(outputPath)
-      .on('end', () => {
-        resolve({
-          filePath: outputFileName,
-          duration: "3:00", // Placeholder duration
-        });
-      })
-      .on('error', reject);
-  });
+
+  const createVariation = (index: number) => {
+    const outputFileName = `processed_${nanoid()}_v${index + 1}.mp3`;
+    const outputPath = path.join("uploads", outputFileName);
+
+    return new Promise<MusicGenerationResult>((resolve, reject) => {
+      const effects = [
+        // Version 1: Slower with reverb
+        [['atempo=0.8', 'asetrate=44100*0.89', 'aecho=0.8:0.88:60:0.4']],
+        // Version 2: Faster with pitch up
+        [['atempo=1.2', 'asetrate=44100*1.1', 'aecho=0.6:0.68:40:0.4']],
+        // Version 3: Medium tempo with different effects
+        [['atempo=1.0', 'asetrate=44100*0.95', 'aecho=0.9:0.98:80:0.4']]
+      ][index];
+
+      ffmpeg(sourceFilePath)
+        .audioFilters(effects)
+        .save(outputPath)
+        .on('end', () => {
+          resolve({
+            filePath: outputFileName,
+            duration: "3:00",
+          });
+        })
+        .on('error', reject);
+    });
+  };
+
+  for (let i = 0; i < 3; i++) {
+    variations.push(await createVariation(i));
+  }
+
+  return variations;
 }
 
 export async function generateSimilarMusic(
   sourceAudioPath: string,
-): Promise<MusicGenerationResult> {
+): Promise<MusicGenerationResult[]> {
   try {
     // First verify the API key
     const isValidKey = await verifyApiKey();

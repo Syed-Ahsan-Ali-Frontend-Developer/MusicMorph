@@ -51,7 +51,12 @@ export default function Home() {
         const error = await response.json();
         throw new Error(error.message || "Generation failed");
       }
-      return response.json();
+      const tracks = await response.json();
+      toast({
+        title: "Success",
+        description: "3 variations generated. Listen and keep your favorite!",
+      });
+      return tracks;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tracks"] });

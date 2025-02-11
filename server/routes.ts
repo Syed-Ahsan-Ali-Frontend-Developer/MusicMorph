@@ -123,17 +123,20 @@ export function registerRoutes(app: Express): Server {
       try {
         const generatedMusic = await generateSimilarMusic(sourceFilePath);
 
-        const generatedTrackData = {
-          name: `AI Generated - ${sourceTrack.name}`,
-          filePath: path.basename(generatedMusic.filePath),
-          duration: generatedMusic.duration,
-          isGenerated: true,
-          waveformData: null,
-        };
+        const tracks = await Promise.all(generatedMusic.map(async (variation, index) => {
+          const generatedTrackData = {
+            name: `AI Generated V${index + 1} - ${sourceTrack.name}`,
+            filePath: path.basename(variation.filePath),
+            duration: variation.duration,
+            isGenerated: true,
+            waveformData: null,
+          };
 
-        const parsed = insertTrackSchema.parse(generatedTrackData);
-        const track = await storage.createTrack(parsed);
-        res.json(track);
+          const parsed = insertTrackSchema.parse(generatedTrackData);
+          return await storage.createTrack(parsed);
+        }));
+
+        res.json(tracks);
       } catch (error) {
         console.error('Music generation error:', error);
         return res.status(500).json({ 
