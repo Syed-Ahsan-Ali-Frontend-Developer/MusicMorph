@@ -2,6 +2,10 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
